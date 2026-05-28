@@ -9,13 +9,13 @@
 // new bottle appears on every device within ~1 second.
 // =============================================================
 (function () {
-  'use strict';
+  "use strict";
 
   // -------- Supabase config (same project as the rest of the dashboard) --------
   // For your audience's standalone, replace these with placeholders
   // and have them paste their own values, just like the other pages.
-  const TOPBAR_SUPABASE_URL = 'PASTE-YOUR-SUPABASE-PROJECT-URL-HERE';
-  const TOPBAR_SUPABASE_KEY = 'PASTE-YOUR-SUPABASE-PUBLISHABLE-KEY-HERE';
+  const TOPBAR_SUPABASE_URL = "https://zkhzmtnaunxqdccfqimj.supabase.co";
+  const TOPBAR_SUPABASE_KEY = "sb_publishable_lNuoLXHmyVqtmrvF6JtiwA_tebzmp2n";
 
   // -------- CSS --------
   const css = `
@@ -199,13 +199,13 @@ body.topbar-modal-open {
 `;
 
   function injectStyleAndHTML() {
-    if (document.getElementById('topbar')) return; // already injected
-    const style = document.createElement('style');
-    style.id = 'topbar-style';
+    if (document.getElementById("topbar")) return; // already injected
+    const style = document.createElement("style");
+    style.id = "topbar-style";
     style.textContent = css;
     document.head.appendChild(style);
 
-    const wrap = document.createElement('div');
+    const wrap = document.createElement("div");
     wrap.innerHTML = html.trim();
     document.body.insertBefore(wrap.firstChild, document.body.firstChild);
   }
@@ -215,96 +215,118 @@ body.topbar-modal-open {
     const now = new Date();
     const d = new Date(now);
     if (now.getHours() < 6) d.setDate(d.getDate() - 1);
-    return d.getFullYear() + '-' +
-      String(d.getMonth() + 1).padStart(2, '0') + '-' +
-      String(d.getDate()).padStart(2, '0');
+    return (
+      d.getFullYear() +
+      "-" +
+      String(d.getMonth() + 1).padStart(2, "0") +
+      "-" +
+      String(d.getDate()).padStart(2, "0")
+    );
   }
   function calendarDateKey() {
     const d = new Date();
-    return d.getFullYear() + '-' +
-      String(d.getMonth() + 1).padStart(2, '0') + '-' +
-      String(d.getDate()).padStart(2, '0');
+    return (
+      d.getFullYear() +
+      "-" +
+      String(d.getMonth() + 1).padStart(2, "0") +
+      "-" +
+      String(d.getDate()).padStart(2, "0")
+    );
   }
 
   // -------- Read progress from localStorage --------
   function getGoalsProgress() {
-    const key = 'goals:' + activeDateKey();
+    const key = "goals:" + activeDateKey();
     let goals = [];
-    try { goals = JSON.parse(localStorage.getItem(key)) || []; } catch (e) {}
+    try {
+      goals = JSON.parse(localStorage.getItem(key)) || [];
+    } catch (e) {}
     const total = Array.isArray(goals) ? goals.length : 0;
-    const done = total ? goals.filter(g => g && g.done).length : 0;
+    const done = total ? goals.filter((g) => g && g.done).length : 0;
     return { done, total };
   }
 
   function getStackProgress() {
     let items = [];
-    try { items = JSON.parse(localStorage.getItem('stack:items')) || []; } catch (e) {}
+    try {
+      items = JSON.parse(localStorage.getItem("stack:items")) || [];
+    } catch (e) {}
     let taken = {};
-    try { taken = JSON.parse(localStorage.getItem('stack:taken:' + activeDateKey())) || {}; } catch (e) {}
+    try {
+      taken =
+        JSON.parse(localStorage.getItem("stack:taken:" + activeDateKey())) ||
+        {};
+    } catch (e) {}
     const total = Array.isArray(items) ? items.length : 0;
-    const done = total ? items.filter(i => i && taken[i.id]).length : 0;
+    const done = total ? items.filter((i) => i && taken[i.id]).length : 0;
     return { done, total };
   }
 
   function getWaterProgress() {
     let state = null;
-    try { state = JSON.parse(localStorage.getItem('po_water_v1')); } catch (e) {}
+    try {
+      state = JSON.parse(localStorage.getItem("po_water_v1"));
+    } catch (e) {}
     if (!state) return { done: 0, total: 0 };
     const todayKey = calendarDateKey();
     const done = (state.logs || {})[todayKey] || 0;
     const p = state.profile || { weightKg: 75 };
-    const wKg = state.weightUnit === 'lb' ? (p.weightKg || 0) / 2.20462 : (p.weightKg || 0);
+    const wKg =
+      state.weightUnit === "lb" ? (p.weightKg || 0) / 2.20462 : p.weightKg || 0;
     const base = wKg * 35;
-    const exercise = (p.activityHrsPerWeek || 0) / 7 * 500;
+    const exercise = ((p.activityHrsPerWeek || 0) / 7) * 500;
     const caffeine = Math.max(0, (state.caffeineMgPerDay || 0) - 200) * 1.5;
     const subs = (state.substances || []).reduce((s, x) => {
-      const dose = (x && x.dose != null ? x.dose : (x && x.defaultDose)) || 0;
+      const dose = (x && x.dose != null ? x.dose : x && x.defaultDose) || 0;
       return s + Math.max(0, dose * ((x && x.mlPerUnit) || 0));
     }, 0);
     let adjust = 0;
-    if (p.sex === 'm') adjust += 200;
+    if (p.sex === "m") adjust += 200;
     if ((p.age || 0) >= 50) adjust += 100;
     const totalMl = base + exercise + caffeine + subs + adjust;
     let unitVol;
-    if (state.unit === 'glass') unitVol = state.glassMl || 250;
-    else if (state.unit === 'oz') unitVol = 30;
-    else if (state.unit === 'ml') unitVol = 1;
+    if (state.unit === "glass") unitVol = state.glassMl || 250;
+    else if (state.unit === "oz") unitVol = 30;
+    else if (state.unit === "ml") unitVol = 1;
     else unitVol = state.bottleMl || 500;
     const total = Math.max(1, Math.ceil(totalMl / unitVol));
     return { done, total };
   }
 
   function classifyStatus(done, total) {
-    if (total === 0) return 'idle';
-    if (done >= total) return 'good';
-    if (done >= total * 0.5) return 'warn';
+    if (total === 0) return "idle";
+    if (done >= total) return "good";
+    if (done >= total * 0.5) return "warn";
     // Past 6pm and still under half → flag as missed
     const h = new Date().getHours();
-    if (h >= 18 && done < total * 0.5) return 'miss';
-    return 'warn';
+    if (h >= 18 && done < total * 0.5) return "miss";
+    return "warn";
   }
 
   function setPillStatus(pillEl, status) {
-    pillEl.classList.remove('good', 'warn', 'miss');
-    if (status === 'warn' || status === 'miss') pillEl.classList.add(status);
+    pillEl.classList.remove("good", "warn", "miss");
+    if (status === "warn" || status === "miss") pillEl.classList.add(status);
   }
 
   function render() {
-    const goalsEl = document.getElementById('topbarGoals');
-    const stackEl = document.getElementById('topbarStack');
-    const waterEl = document.getElementById('topbarWater');
+    const goalsEl = document.getElementById("topbarGoals");
+    const stackEl = document.getElementById("topbarStack");
+    const waterEl = document.getElementById("topbarWater");
     if (!goalsEl) return; // not injected yet
 
     const g = getGoalsProgress();
     const s = getStackProgress();
     const w = getWaterProgress();
 
-    document.getElementById('topbarGoalsCount').textContent =
-      g.total ? g.done + '/' + g.total : '0/0';
-    document.getElementById('topbarStackCount').textContent =
-      s.total ? s.done + '/' + s.total : '0/0';
-    document.getElementById('topbarWaterCount').textContent =
-      w.total ? w.done + '/' + w.total : '0/0';
+    document.getElementById("topbarGoalsCount").textContent = g.total
+      ? g.done + "/" + g.total
+      : "0/0";
+    document.getElementById("topbarStackCount").textContent = s.total
+      ? s.done + "/" + s.total
+      : "0/0";
+    document.getElementById("topbarWaterCount").textContent = w.total
+      ? w.done + "/" + w.total
+      : "0/0";
 
     setPillStatus(goalsEl, classifyStatus(g.done, g.total));
     setPillStatus(stackEl, classifyStatus(s.done, s.total));
@@ -314,48 +336,71 @@ body.topbar-modal-open {
   // -------- Water +1 (works from any page) --------
   function defaultWaterState() {
     return {
-      unit: 'bottle', bottleMl: 500, glassMl: 250, weightUnit: 'kg',
-      profile: { weightKg: 75, age: 25, sex: 'm', activityHrsPerWeek: 5 },
-      caffeineMgPerDay: 200, substances: [], logs: {}
+      unit: "bottle",
+      bottleMl: 500,
+      glassMl: 250,
+      weightUnit: "kg",
+      profile: { weightKg: 75, age: 25, sex: "m", activityHrsPerWeek: 5 },
+      caffeineMgPerDay: 200,
+      substances: [],
+      logs: {},
     };
   }
 
   async function pushWaterMergedToSupabase(localWater) {
     // Only do this when we're NOT on the health page — health page
     // has its own sync that already detects the localStorage change.
-    if (window.location.pathname.endsWith('/health.html') ||
-        window.location.pathname.endsWith('health.html')) return;
+    if (
+      window.location.pathname.endsWith("/health.html") ||
+      window.location.pathname.endsWith("health.html")
+    )
+      return;
 
-    if (!window.supabase || !TOPBAR_SUPABASE_URL || !TOPBAR_SUPABASE_KEY) return;
-    if (TOPBAR_SUPABASE_URL.indexOf('PASTE-') === 0) return;
+    if (!window.supabase || !TOPBAR_SUPABASE_URL || !TOPBAR_SUPABASE_KEY)
+      return;
+    if (TOPBAR_SUPABASE_URL.indexOf("PASTE-") === 0) return;
 
     try {
-      const supa = window.supabase.createClient(TOPBAR_SUPABASE_URL, TOPBAR_SUPABASE_KEY);
+      const supa = window.supabase.createClient(
+        TOPBAR_SUPABASE_URL,
+        TOPBAR_SUPABASE_KEY,
+      );
       const { data } = await supa
-        .from('app_state').select('data').eq('key', 'health').maybeSingle();
+        .from("app_state")
+        .select("data")
+        .eq("key", "health")
+        .maybeSingle();
       const current = (data && data.data) || {};
       const merged = Object.assign({}, current, { po_water_v1: localWater });
-      await supa.from('app_state').upsert(
-        { key: 'health', data: merged, updated_at: new Date().toISOString() },
-        { onConflict: 'key' }
-      );
-    } catch (e) { /* offline — local change will sync next time user visits health */ }
+      await supa
+        .from("app_state")
+        .upsert(
+          { key: "health", data: merged, updated_at: new Date().toISOString() },
+          { onConflict: "key" },
+        );
+    } catch (e) {
+      /* offline — local change will sync next time user visits health */
+    }
   }
 
   function addWater() {
     let state = null;
-    try { state = JSON.parse(localStorage.getItem('po_water_v1')); } catch (e) {}
-    if (!state || typeof state !== 'object') state = defaultWaterState();
+    try {
+      state = JSON.parse(localStorage.getItem("po_water_v1"));
+    } catch (e) {}
+    if (!state || typeof state !== "object") state = defaultWaterState();
     state.logs = state.logs || {};
     const k = calendarDateKey();
     state.logs[k] = (state.logs[k] || 0) + 1;
-    try { localStorage.setItem('po_water_v1', JSON.stringify(state)); } catch (e) {}
+    try {
+      localStorage.setItem("po_water_v1", JSON.stringify(state));
+    } catch (e) {}
     render();
 
-    const btn = document.getElementById('topbarWaterAdd');
+    const btn = document.getElementById("topbarWaterAdd");
     if (btn) {
-      btn.classList.add('flash');
-      setTimeout(() => btn.classList.remove('flash'), 220);
+      btn.classList.add("flash");
+      setTimeout(() => btn.classList.remove("flash"), 220);
     }
 
     pushWaterMergedToSupabase(state);
@@ -364,18 +409,26 @@ body.topbar-modal-open {
   // -------- Mobile lockdown helpers --------
   // Belt-and-suspenders zoom prevention — iOS Safari sometimes ignores
   // user-scalable=no, so we also kill the gesture events directly.
-  function blockGesture(e) { e.preventDefault(); }
+  function blockGesture(e) {
+    e.preventDefault();
+  }
   function lockGestures() {
-    document.addEventListener('gesturestart', blockGesture, { passive: false });
-    document.addEventListener('gesturechange', blockGesture, { passive: false });
-    document.addEventListener('gestureend', blockGesture, { passive: false });
+    document.addEventListener("gesturestart", blockGesture, { passive: false });
+    document.addEventListener("gesturechange", blockGesture, {
+      passive: false,
+    });
+    document.addEventListener("gestureend", blockGesture, { passive: false });
     // Also kill the iOS double-tap-to-zoom on any tap.
     let lastTouch = 0;
-    document.addEventListener('touchend', (e) => {
-      const now = Date.now();
-      if (now - lastTouch <= 300) e.preventDefault();
-      lastTouch = now;
-    }, { passive: false });
+    document.addEventListener(
+      "touchend",
+      (e) => {
+        const now = Date.now();
+        if (now - lastTouch <= 300) e.preventDefault();
+        lastTouch = now;
+      },
+      { passive: false },
+    );
   }
 
   // Watch every known modal-bg / overlay class — when any one of them
@@ -383,13 +436,20 @@ body.topbar-modal-open {
   // one closes, unlock.
   function startModalLock() {
     const MODAL_SELECTORS = [
-      '.modal-bg', '.po-modal-bg', '.wt-overlay', '.wt-viewer', '.wt-cam'
+      ".modal-bg",
+      ".po-modal-bg",
+      ".wt-overlay",
+      ".wt-viewer",
+      ".wt-cam",
     ];
     function anyOpen() {
       for (const sel of MODAL_SELECTORS) {
         const els = document.querySelectorAll(sel);
         for (const el of els) {
-          if (el.classList.contains('show') || el.classList.contains('is-open')) {
+          if (
+            el.classList.contains("show") ||
+            el.classList.contains("is-open")
+          ) {
             return true;
           }
         }
@@ -397,13 +457,15 @@ body.topbar-modal-open {
       return false;
     }
     function sync() {
-      document.body.classList.toggle('topbar-modal-open', anyOpen());
+      document.body.classList.toggle("topbar-modal-open", anyOpen());
     }
     const observer = new MutationObserver(sync);
     // Observe class changes anywhere in body — modal toggles are rare so
     // a global subtree observer is cheap.
     observer.observe(document.body, {
-      attributes: true, attributeFilter: ['class'], subtree: true
+      attributes: true,
+      attributeFilter: ["class"],
+      subtree: true,
     });
     sync();
   }
@@ -411,24 +473,30 @@ body.topbar-modal-open {
   // -------- Boot --------
   function boot() {
     injectStyleAndHTML();
-    const btn = document.getElementById('topbarWaterAdd');
-    if (btn) btn.addEventListener('click', (e) => { e.preventDefault(); addWater(); });
+    const btn = document.getElementById("topbarWaterAdd");
+    if (btn)
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        addWater();
+      });
     render();
     lockGestures();
     startModalLock();
 
     // Re-render when localStorage changes from another tab/window OR when
     // the page becomes visible (sync may have pulled in the background).
-    window.addEventListener('storage', render);
-    window.addEventListener('focus', render);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
+    window.addEventListener("storage", render);
+    window.addEventListener("focus", render);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) render();
+    });
 
     // Periodic refresh so counts stay current after midnight rollover etc.
     setInterval(render, 30 * 1000);
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot, { once: true });
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot, { once: true });
   } else {
     boot();
   }
